@@ -1,0 +1,17 @@
+{
+	"name": "@omarty13/node-reloader",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"author": {
+		"name": "omarty13",
+		"email": "ohhhmarty@gmail.com"
+	},
+	"scripts": {
+		"test": "node ./test-parent.js"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"chokidar": "^3.5.3"
+	}
+}
