@@ -1,0 +1,14 @@
+{
+	"name": "@omarty13/node-reloader",
+	"version": "2.0.2",
+	"description": "",
+	"main": "index.mjs",
+	"author": {
+		"name": "omarty13",
+		"email": "ohhhmarty@gmail.com"
+	},
+	"scripts": {
+		"test": "node ./run-test.js"
+	},
+	"license": "MIT"
+}
