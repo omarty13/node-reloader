@@ -28,6 +28,7 @@ let nodeReloader = new NodeReloader({
 	restartTimeout: 5000,
 });
 
+
 nodeReloader.on("spawn", ({ process, }) => {
 	// Set event on message, for receive message from child process (test-app.js)
 	process.on("message", (message) => {

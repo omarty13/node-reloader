@@ -1,6 +1,6 @@
 {
 	"name": "@omarty13/node-reloader",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"description": "",
 	"main": "index.mjs",
 	"author": {
@@ -8,7 +8,7 @@
 		"email": "ohhhmarty@gmail.com"
 	},
 	"scripts": {
-		"test": "node ./run-test.js"
+		"test": "node ./test-run.mjs"
 	},
 	"license": "MIT"
 }
