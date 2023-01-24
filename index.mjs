@@ -27,13 +27,13 @@ export class NodeReloader extends EventEmitter
 		this._watchTbl = new Set();
 		this._watcherArr = [];
 
-		this._dirsToWatch = this._makeDirs({
+		this._dirWatchTbl = this._makeDirs({
 			watch: config.watch,
 			ignore: config.ignore,
 		});
 
-		this._consoleLog("____________________________________________________________");
-		this._consoleLog(this._dirsToWatch);
+		this._consoleLog("__________ this._dirWatchTbl _______________________________");
+		this._consoleLog(this._dirWatchTbl);
 
 		if (this._autostart == true) {
 			this.start();
@@ -57,7 +57,7 @@ export class NodeReloader extends EventEmitter
 	 *		}
 	 */
 	_makeDirs({ watch, ignore, }) {
-		const dirsWatchTbl = {};
+		const dirWatchTbl = {};
 
 		for (let i = 0; i < watch.length; i++) {
 			const glob = watch[i];
@@ -67,17 +67,17 @@ export class NodeReloader extends EventEmitter
 				const dir = glob.substring(0, indx);
 				const re = this._globToRE(glob);
 
-				if (dirsWatchTbl[dir] == undefined) {
-					dirsWatchTbl[dir] = { reWatchArr: [ re, ], reIgnoreArr: [], };
+				if (dirWatchTbl[dir] == undefined) {
+					dirWatchTbl[dir] = { needCheckFile: false, reWatchArr: [ re, ], reIgnoreArr: [], };
 				} else {
-					dirsWatchTbl[dir].reWatchArr.push(re);
+					dirWatchTbl[dir].reWatchArr.push(re);
 				}
 			}
 			else {
 				const dir = glob.replace(/\/$/, "");
 				const re = new RegExp(dir +"/.*");
 
-				dirsWatchTbl[dir] = { reWatchArr: [ re, ], reIgnoreArr: [], };
+				dirWatchTbl[dir] = { needCheckFile: true, reWatchArr: [ re, ], reIgnoreArr: [], };
 			}
 		}
 
@@ -89,21 +89,21 @@ export class NodeReloader extends EventEmitter
 				const dir = glob.substring(0, indx);
 				const re = this._globToRE(glob);
 
-				if (dirsWatchTbl[dir]) {
-					dirsWatchTbl[dir].reIgnoreArr.push(re);
+				if (dirWatchTbl[dir]) {
+					dirWatchTbl[dir].reIgnoreArr.push(re);
 				}
 			}
 			else {
 				const dir = glob.replace(/\/$/, "");
 				const re = new RegExp(dir +"/.*");
 
-				if (dirsWatchTbl[dir]) {
-					dirsWatchTbl[dir].reIgnoreArr.push(re);
+				if (dirWatchTbl[dir]) {
+					dirWatchTbl[dir].reIgnoreArr.push(re);
 				}
 			}
 		}
 
-		return dirsWatchTbl;
+		return dirWatchTbl;
 	}
 
 	/**
@@ -252,13 +252,40 @@ export class NodeReloader extends EventEmitter
 
 		const pathnamesToWatch = [];
 
-		for (const _dir in this._dirsToWatch) {
-			const watchDir = this._dirsToWatch[_dir];
-			const { dir, base, } = path.parse(_dir);
-			pathnamesToWatch.push(...await this._getFiles(dir, base, watchDir.reWatchArr, watchDir.reIgnoreArr));
+		for (const _dir in this._dirWatchTbl) {
+			const watchDir = this._dirWatchTbl[_dir];
+			let stat;
+			
+			if (watchDir.needCheckFile === true) {
+				try {
+					stat = await fsPromises.stat(_dir);
+				}
+				catch(err) {
+					if (err.code == "ENOENT") {
+						continue;
+					} else {
+						throw err;
+					}
+				}
+
+				if (stat.isFile()) {
+					pathnamesToWatch.push(_dir);
+				}
+				else if (stat.isDirectory()) {
+					const { dir, base, } = path.parse(_dir);
+					pathnamesToWatch.push(...await this._getFiles(dir, base, watchDir.reWatchArr, watchDir.reIgnoreArr));
+				}
+				else {
+					console.warn(`Path "${_dir}" is not a file or directory.`);
+				}
+			}
+			else {
+				const { dir, base, } = path.parse(_dir);
+				pathnamesToWatch.push(...await this._getFiles(dir, base, watchDir.reWatchArr, watchDir.reIgnoreArr));
+			}
 		}
 
-		this._consoleLog("__________ files ___________________________________________");
+		this._consoleLog("__________ pathnamesToWatch ________________________________");
 		this._consoleLog(pathnamesToWatch);
 
 		for (let i = 0; i < pathnamesToWatch.length; i++) {
@@ -301,7 +328,7 @@ export class NodeReloader extends EventEmitter
 	async _getFiles(pathParent, dirname, reWatchArr, reIgnoreArr) {
 		const pathCurrent = `${pathParent}/${dirname}`;
 		const dirList = await fsPromises.readdir(pathCurrent, { withFileTypes: true, });
-		const rsltList = [ /* pathCurrent, */ ];
+		const rsltList = [];
 
 		loopStart:
 		for (let i = 0; i < dirList.length; i++) {
