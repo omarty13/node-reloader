@@ -126,7 +126,6 @@ export class NodeReloader extends EventEmitter
 			}
 		}
 		
-		console.log(arr.join("/") + "$");
 		return new RegExp(arr.join("/") + "$");
 	}
 	
