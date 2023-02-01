@@ -318,7 +318,7 @@ export class NodeReloader extends EventEmitter
 	 * @return {*} 
 	 */
 	 async _getFiles(pathCrnt, watchGlobsArr, ignoreGlobsArr) {
-		console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _getFiles`, pathCrnt);
+		// console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _getFiles`, pathCrnt);
 
 		let stat;
 		try {
