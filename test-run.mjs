@@ -6,7 +6,7 @@ const __dirname = path.dirname(import.meta.url.replace(/^file:\/\/\//, ""));
 
 
 let nodeReloader = new NodeReloader({
-	scriptPath: __dirname + "/app-test.js",
+	scriptPath: __dirname + "/test-app.js",
 	watcherDelay: 0,
 	isDebug: true,
 	args: [
@@ -14,15 +14,19 @@ let nodeReloader = new NodeReloader({
 	],
 	watch: [
 		// __dirname + "/dir-to-test/**/*-?.mjs",
-		// __dirname + "/dir-to-test/*.json",
+		// __dirname + "/dir-to-test/**/*.json",
 		// __dirname + "/dir-to-test/**/*-[^a-b].mjs",
 		// __dirname + "/app-tes?.js",
-		__dirname + "/dir-to-test/**",
+		// __dirname + "/dir-to-test/**",
+		// __dirname + "/dir-to-test/file-1.mjs",
+		__dirname + "/dir-to-test",
 		// __dirname + "/node_modules/**/*",
 		// "./dir-to-test/**/*",
 	],
 	ignore: [
-		// __dirname + "/dir-to-test/*.js",
+		// __dirname + "/dir-to-test/file-no",
+		// __dirname + "/dir-to-test/",
+		// __dirname + "/dir-to-test/",
 	],
 	stdio: [ process.stdin, process.stdout, process.stderr, 'ipc', ],
 	restartTimeout: 5000,
@@ -43,12 +47,12 @@ nodeReloader.on("spawn", ({ process, }) => {
 	});
 
 	// Set interval of send message to child process
-	setTimeout(() => {
-		console.log("Try start from parent...");
+	// setTimeout(() => {
+	// 	console.log("Try start from parent...");
 
-		process.send({
-			message: "parent -> child",
-			counter: 0,
-		});
-	}, 500);
+	// 	process.send({
+	// 		message: "parent -> child",
+	// 		counter: 0,
+	// 	});
+	// }, 500);
 });

@@ -27,13 +27,13 @@ export class NodeReloader extends EventEmitter
 		this._watchTbl = new Set();
 		this._watcherArr = [];
 
-		this._dirWatchTbl = this._makeDirs({
+		this._regexpTbl = this._makeRegexpTbl({
 			watch: config.watch,
 			ignore: config.ignore,
 		});
 
-		this._consoleLog("__________ this._dirWatchTbl _______________________________");
-		this._consoleLog(this._dirWatchTbl);
+		this._consoleLog("__________ this._regexpTbl _______________________________");
+		this._consoleLog(this._regexpTbl);
 
 		if (this._autostart == true) {
 			this.start();
@@ -52,58 +52,57 @@ export class NodeReloader extends EventEmitter
 	 * @param {Object} { watch, ignore, } - Parameters watch and ignore paths.
 	 * @return {Object} Returns dirsWatchTbl like:
 	 * 	{
-	 *			"c:/dev/server": { reWatchArr: [ <RegExp>, .., ], reIgnoreArr: [ <RegExp>, .., ], },
-	 *			"c:/dev/client": { reWatchArr: [ <RegExp>, .., ], reIgnoreArr: [ <RegExp>, .., ], },
+	 *			"watchPaths": Set() { 'c:/Dev/node-reloader/dir-to-test', },
+	 *			"watchGlobs": Map() { regexp.toString() => regexp },
+	 *			"ignoreGlobs": Map() { regexp.toString() => regexp },
 	 *		}
 	 */
-	_makeDirs({ watch, ignore, }) {
-		const dirWatchTbl = {};
+	_makeRegexpTbl({ watch, ignore, }) {
+		const watchPaths = new Set();
+		const watchGlobs = new Map();
+		const ignoreGlobs = new Map();
+
+		const reGlobSearch = /\/[^\/]*(\*|\?)/;
 
 		for (let i = 0; i < watch.length; i++) {
-			const glob = watch[i];
-			const indx = glob.search(/\/[^\/]*(\*|\?)/);
+			const glob = watch[i].replace(/\/$/, "");
+			const indx = glob.search(reGlobSearch);
 
 			if (indx > -1) {
 				const dir = glob.substring(0, indx);
-				const re = this._globToRE(glob);
+				watchPaths.add(dir);
 
-				if (dirWatchTbl[dir] == undefined) {
-					dirWatchTbl[dir] = { needCheckFile: false, reWatchArr: [ re, ], reIgnoreArr: [], };
-				} else {
-					dirWatchTbl[dir].reWatchArr.push(re);
-				}
+				const re = this._globToRegexp(glob);
+				watchGlobs.set(re.toString(), re);
 			}
 			else {
-				const dir = glob.replace(/\/$/, "");
-				const re = new RegExp(dir +"/.*");
+				const dir = glob;
+				watchPaths.add(dir);
 
-				dirWatchTbl[dir] = { needCheckFile: true, reWatchArr: [ re, ], reIgnoreArr: [], };
+				const re = this._globToRegexp(glob, { isRealPath: true, });
+				watchGlobs.set(re.toString(), re);
 			}
 		}
 
 		for (let i = 0; i < ignore.length; i++) {
-			const glob = ignore[i];
-			const indx = glob.search(/\/[^\/]*\*/);
+			const glob = ignore[i].replace(/\/$/, "");
+			const indx = glob.search(reGlobSearch);
 
 			if (indx > -1) {
-				const dir = glob.substring(0, indx);
-				const re = this._globToRE(glob);
-
-				if (dirWatchTbl[dir]) {
-					dirWatchTbl[dir].reIgnoreArr.push(re);
-				}
+				const re = this._globToRegexp(glob);
+				ignoreGlobs.set(re.toString(), re);
 			}
 			else {
-				const dir = glob.replace(/\/$/, "");
-				const re = new RegExp(dir +"/.*");
-
-				if (dirWatchTbl[dir]) {
-					dirWatchTbl[dir].reIgnoreArr.push(re);
-				}
+				const re = this._globToRegexp(glob, { isRealPath: true, });
+				ignoreGlobs.set(re.toString(), re);
 			}
 		}
 
-		return dirWatchTbl;
+		return {
+			watchPaths,
+			watchGlobs,
+			ignoreGlobs,
+		};
 	}
 
 	/**
@@ -111,22 +110,35 @@ export class NodeReloader extends EventEmitter
 	 * @param {String} dirstr - Glob string.
 	 * @return {RegExp} Returns Regular Expression.
 	 */
-	_globToRE(dirstr) {
+	_globToRegexp(dirstr, options = { isRealPath: false, }) {
 		const arr = dirstr.split("/");
 		
 		for (let i = 0; i < arr.length; i++) {
 			const indx = arr[i].search(/\*\*/g);
 
-			// .replace(/\./g, "\\."); // This replace first! ⚠️
 			if (indx > -1) {
-				arr[i] = arr[i].replace(/\./g, "\\.").replace(/\*\*/g, ".*").replace(/\?/g, ".");
+				arr[i] = arr[i]
+					.replace(/\./g, "\\.") // This replace first! ⚠️
+					// .replace(/\[/g, "\\[")
+					// .replace(/\]/g, "\\]")
+					.replace(/\*\*/g, ".*")
+					.replace(/\?/g, ".");
 			}
 			else {
-				arr[i] = arr[i].replace(/\./g, "\\.").replace(/\*/g, "[^\/]*").replace(/\?/g, ".");
+				arr[i] = arr[i]
+					.replace(/\./g, "\\.") // This replace first! ⚠️
+					// .replace(/\[/g, "\\[")
+					// .replace(/\]/g, "\\]")
+					.replace(/\*/g, "[^\\/]*")
+					.replace(/\?/g, ".");
 			}
 		}
-		
-		return new RegExp(arr.join("/") + "$");
+
+		if (options.isRealPath == false) {
+			return new RegExp("^"+ arr.join("/") +"$");
+		} else {
+			return new RegExp("^"+ arr.join("/") +"([\\/].+|$)");
+		}
 	}
 	
 	/**
@@ -249,40 +261,20 @@ export class NodeReloader extends EventEmitter
 	async _createWatchers() {
 		console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _createWatcher`);
 
+		const { watchPaths,
+			     watchGlobs,
+			     ignoreGlobs, } = this._regexpTbl;
+
+		const watchPathsArr = Array.from(watchPaths);
+		const watchGlobsArr = Array.from(watchGlobs.values());
+		const ignoreGlobsArr = Array.from(ignoreGlobs.values());
 		const pathnamesToWatch = [];
 
-		for (const _dir in this._dirWatchTbl) {
-			const watchDir = this._dirWatchTbl[_dir];
-			let stat;
-			
-			if (watchDir.needCheckFile === true) {
-				try {
-					stat = await fsPromises.stat(_dir);
-				}
-				catch(err) {
-					if (err.code == "ENOENT") {
-						continue;
-					} else {
-						throw err;
-					}
-				}
-
-				if (stat.isFile()) {
-					pathnamesToWatch.push(_dir);
-				}
-				else if (stat.isDirectory()) {
-					const { dir, base, } = path.parse(_dir);
-					pathnamesToWatch.push(...await this._getFiles(dir, base, watchDir.reWatchArr, watchDir.reIgnoreArr));
-				}
-				else {
-					console.warn(`Path "${_dir}" is not a file or directory.`);
-				}
-			}
-			else {
-				const { dir, base, } = path.parse(_dir);
-				pathnamesToWatch.push(...await this._getFiles(dir, base, watchDir.reWatchArr, watchDir.reIgnoreArr));
-			}
+		for (let i = 0; i < watchPathsArr.length; i++) {
+			pathnamesToWatch.push(...await this._getFiles(watchPathsArr[i], watchGlobsArr, ignoreGlobsArr));
 		}
+
+		// -----------------------------------------------------------------
 
 		this._consoleLog("__________ pathnamesToWatch ________________________________");
 		this._consoleLog(pathnamesToWatch);
@@ -320,45 +312,59 @@ export class NodeReloader extends EventEmitter
 
 	/**
 	 * Inner function for get files.
-	 * @param {*} pathParent
-	 * @param {*} dirname
+	 * @param {String} pathCrnt - Current path.
+	 * @param {Array} watchGlobsArr - Array with globs for watching.
+	 * @param {Array} ignoreGlobsArr - Array with globs for ignoring.
 	 * @return {*} 
 	 */
-	async _getFiles(pathParent, dirname, reWatchArr, reIgnoreArr) {
-		const pathCurrent = `${pathParent}/${dirname}`;
-		const dirList = await fsPromises.readdir(pathCurrent, { withFileTypes: true, });
-		const rsltList = [];
+	 async _getFiles(pathCrnt, watchGlobsArr, ignoreGlobsArr) {
+		console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _getFiles`, pathCrnt);
 
-		loopStart:
-		for (let i = 0; i < dirList.length; i++) {
-			const dir = `${pathCurrent}/${dirList[i].name}`;
-			// this._consoleLog("___debug___ dir -", dir);
-
-			if (dirList[i].isDirectory() == true) {
-				rsltList.push(...await this._getFiles(pathCurrent, dirList[i].name, reWatchArr, reIgnoreArr));
-				continue;
+		let stat;
+		try {
+			stat = await fsPromises.stat(pathCrnt);
+		}
+		catch(err) {
+			if (err.code == "ENOENT") {
+				return [];
+			} else {
+				throw err;
 			}
-
-			if (dirList[i].isFile() == false) {
-				continue;
-			}
-
-			for (let ii = 0; ii < reIgnoreArr.length; ii++) {
-				// this._consoleLog("___debug___ ignore -", reIgnoreArr[ii].test(dir), dir);
-				if (reIgnoreArr[ii].test(dir) == true) {
-					continue loopStart;
-				}
-			}
-
-			for (let ii = 0; ii < reWatchArr.length; ii++) {
-				// this._consoleLog("___debug___ watch -", reWatchArr[ii].test(dir), dir);
-				if (reWatchArr[ii].test(dir) == true) {
-					rsltList.push(dir);
-				}
-			}		
 		}
 
-		return rsltList;
+		if (stat.isFile()) {
+			// this._consoleLog("___debug___ file -", pathCrnt);
+
+			for (let i = 0; i < ignoreGlobsArr.length; i++) {
+				// console.log("___ IGN", ignoreGlobsArr[i]);
+				if (ignoreGlobsArr[i].test(pathCrnt) == true) {
+					return [];
+				}
+			}
+
+			return [ pathCrnt, ];
+		}
+		else if (stat.isDirectory()) {
+			for (let i = 0; i < ignoreGlobsArr.length; i++) {
+				// console.log("___ IGN", ignoreGlobsArr[i]);
+				if (ignoreGlobsArr[i].test(pathCrnt) == true) {
+					return [];
+				}
+			}
+
+			const pathnamesToWatch = [];
+			const dirArr = await fsPromises.readdir(pathCrnt, /* { withFileTypes: true, } */);
+			
+			for (let i = 0; i < dirArr.length; i++) {
+				pathnamesToWatch.push(...await this._getFiles(`${pathCrnt}/${dirArr[i]}`, watchGlobsArr, ignoreGlobsArr));
+			}
+
+			return pathnamesToWatch;
+		}
+		else {
+			console.warn(`Path "${pathCrnt}" is not a file or directory.`);
+			return [];
+		}
 	}
 }
 
