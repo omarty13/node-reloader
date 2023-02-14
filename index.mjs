@@ -336,17 +336,24 @@ export class NodeReloader extends EventEmitter
 			// this._consoleLog("___debug___ file -", pathCrnt);
 
 			for (let i = 0; i < ignoreGlobsArr.length; i++) {
-				// console.log("___ IGN", ignoreGlobsArr[i]);
+				// console.log("___ FILE IGNR", ignoreGlobsArr[i]);
 				if (ignoreGlobsArr[i].test(pathCrnt) == true) {
 					return [];
 				}
 			}
 
-			return [ pathCrnt, ];
+			for (let i = 0; i < watchGlobsArr.length; i++) {
+				// console.log("___ FILE WTCH", watchGlobsArr[i]);
+				if (watchGlobsArr[i].test(pathCrnt) == true) {
+					return [ pathCrnt, ];
+				}	
+			}
+
+			return [];
 		}
 		else if (stat.isDirectory()) {
 			for (let i = 0; i < ignoreGlobsArr.length; i++) {
-				// console.log("___ IGN", ignoreGlobsArr[i]);
+				// console.log("___ DIR IGNR", ignoreGlobsArr[i]);
 				if (ignoreGlobsArr[i].test(pathCrnt) == true) {
 					return [];
 				}
@@ -402,13 +409,3 @@ function createTimestamp() {
 		millisec
 	)
 }
-
-
-
-
-
-
-
-
-
-
