@@ -14,6 +14,7 @@ export class NodeReloader extends EventEmitter
 		super();
 
 		this._scriptPath = config.scriptPath;
+		this._spawnOptions = config.spawnOptions;
 		this._isDebug = config.isDebug || false;
 		this._args = (config.args == undefined) ? ([]) : (config.args);
 		this._autostart = (config.autostart == undefined) ? (true) : (config.autostart);
@@ -192,12 +193,12 @@ export class NodeReloader extends EventEmitter
 			clearTimeout(this._restartTimer);
 		}
 
-		var args = [this._scriptPath].concat(this._args);
-		var spawnOptns = { stdio: this._stdio, };
-		// var spawnOptns = { stdio: [ process.stdin, process.stdout, process.stderr, 'ipc'], };
-		// var spawnOptns = { stdio: [ "pipe", "pipe", "pipe", ], };
+		const args = [this._scriptPath].concat(this._args);
+		// const spawnOptns = Object.assign({ stdio: this._stdio, }, this._spawnOptions);
+		// const spawnOptns = { stdio: [ process.stdin, process.stdout, process.stderr, 'ipc'], };
+		// const spawnOptns = { stdio: [ "pipe", "pipe", "pipe", ], };
 
-		this.process = child_process.spawn("node", args, spawnOptns);
+		this.process = child_process.spawn("node", args, this._spawnOptions);
 
 		this.process.on("spawn", () => {
 			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "spawn" : process has spawned successfully "${this._scriptPath}"`);
@@ -380,15 +381,15 @@ export class NodeReloader extends EventEmitter
  * @returns {string} Returns timestamp in string view.
  */
 function createTimestamp() {
-	var date = new Date();
+	const date = new Date();
 
-	var day = String(date.getDate());
-	var month = String(date.getMonth() + 1);
-	var year = date.getFullYear();
-	var hours = String(date.getHours());
-	var minutes = String(date.getMinutes());
-	var seconds = String(date.getSeconds());
-	var millisec = String(date.getUTCMilliseconds());
+	const day = String(date.getDate());
+	const month = String(date.getMonth() + 1);
+	const year = date.getFullYear();
+	const hours = String(date.getHours());
+	const minutes = String(date.getMinutes());
+	const seconds = String(date.getSeconds());
+	let millisec = String(date.getUTCMilliseconds());
 	
 	if (millisec.length == 2) millisec = "0" + millisec;
 	else if (millisec.length == 1) millisec = "00" + millisec;

@@ -7,6 +7,9 @@ const __dirname = path.dirname(import.meta.url.replace(/^file:\/\/\//, ""));
 
 let nodeReloader = new NodeReloader({
 	scriptPath: __dirname + "/test-app.js",
+	spawnOptions: {
+		stdio: [ process.stdin, process.stdout, process.stderr, 'ipc', ],
+	},
 	watcherDelay: 0,
 	isDebug: true,
 	args: [
@@ -28,7 +31,6 @@ let nodeReloader = new NodeReloader({
 		// __dirname + "/dir-to-test/",
 		// __dirname + "/dir-to-test/",
 	],
-	stdio: [ process.stdin, process.stdout, process.stderr, 'ipc', ],
 	restartTimeout: 5000,
 });
 
