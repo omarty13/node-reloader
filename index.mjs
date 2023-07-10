@@ -14,6 +14,7 @@ export class NodeReloader extends EventEmitter
 		super();
 
 		this._scriptPath = config.scriptPath;
+		this._nodePath = config.nodePath || "node";
 		this._spawnOptions = config.spawnOptions;
 		this._isDebug = config.isDebug || false;
 		this._args = (config.args == undefined) ? ([]) : (config.args);
@@ -198,7 +199,7 @@ export class NodeReloader extends EventEmitter
 		// const spawnOptns = { stdio: [ process.stdin, process.stdout, process.stderr, 'ipc'], };
 		// const spawnOptns = { stdio: [ "pipe", "pipe", "pipe", ], };
 
-		this.process = child_process.spawn("node", args, this._spawnOptions);
+		this.process = child_process.spawn(this._nodePath, args, this._spawnOptions);
 
 		this.process.on("spawn", () => {
 			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "spawn" : process has spawned successfully "${this._scriptPath}"`);

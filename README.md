@@ -56,6 +56,8 @@ const __dirname = path.dirname(import.meta.url.replace(/^file:\/\/\//, ""));
 
 
 let nodeReloader = new NodeReloader({
+	// Path to the node.js
+	nodePath: "node", // By default is "node", but can be used for example - "c:/Program Files/nodejs/node.exe"
 	// Path of the script
 	scriptPath: __dirname + "/app-test.js",
 	// Spawn options

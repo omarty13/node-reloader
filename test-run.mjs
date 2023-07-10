@@ -6,6 +6,7 @@ const __dirname = path.dirname(import.meta.url.replace(/^file:\/\/\//, ""));
 
 
 let nodeReloader = new NodeReloader({
+	// nodePath: "w:/Dev/tms-bot/node.exe",
 	scriptPath: __dirname + "/test-app.js",
 	spawnOptions: {
 		stdio: [ process.stdin, process.stdout, process.stderr, 'ipc', ],
