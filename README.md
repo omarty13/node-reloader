@@ -50,9 +50,11 @@ npm install @omarty13/node-reloader
 ## Example of use
 
 ```javascript
-import NodeReloader from '@omarty13/node-reloader';
+import path                             from 'node:path';
+import { fileURLToPath }                from 'node:url';
+import NodeReloader                     from '@omarty13/node-reloader';
 
-const __dirname = path.dirname(import.meta.url.replace(/^file:\/\/\//, ""));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 let nodeReloader = new NodeReloader({
