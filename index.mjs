@@ -67,7 +67,7 @@ export class NodeReloader extends EventEmitter
 		const reGlobSearch = /\/[^\/]*(\*|\?)/;
 
 		for (let i = 0; i < watch.length; i++) {
-			const glob = watch[i].replace(/\/$/, "");
+			const glob = watch[i].replace(/\/$/, "").replace(/\\/g, "/");
 			const indx = glob.search(reGlobSearch);
 
 			if (indx > -1) {
@@ -87,7 +87,7 @@ export class NodeReloader extends EventEmitter
 		}
 
 		for (let i = 0; i < ignore.length; i++) {
-			const glob = ignore[i].replace(/\/$/, "");
+			const glob = ignore[i].replace(/\/$/, "").replace(/\\/g, "/");
 			const indx = glob.search(reGlobSearch);
 
 			if (indx > -1) {

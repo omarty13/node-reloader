@@ -1,8 +1,9 @@
 import path                             from 'node:path';
+import { fileURLToPath }                from 'node:url';
 // import { watch }                        from 'node:fs';
 import { NodeReloader }                 from "./index.mjs";
 
-const __dirname = path.dirname(import.meta.url.replace(/^file:\/\/\//, ""));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 let nodeReloader = new NodeReloader({
