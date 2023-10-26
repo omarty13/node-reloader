@@ -21,7 +21,7 @@ export class NodeReloader extends EventEmitter
 		this._autostart = (config.autostart == undefined) ? (true) : (config.autostart);
 		this._restartTimeout = (typeof config.restartTimeout == "number") ? (config.restartTimeout) : (3000);
 		this._watcherDelay = (typeof config.watcherDelay == "number") ? (config.watcherDelay) : (1000);
-		this._stdio = (config.stdio) ? (config.stdio) : ([ process.stdin, process.stdout, process.stderr, ]);
+		this._beforeStart = config.beforeStart;
 
 		this.state = "STOPPED";
 		this.process = null;
@@ -146,7 +146,7 @@ export class NodeReloader extends EventEmitter
 	/**
 	 * Start NodeReloader.
 	 */
-	start() {
+	async start() {
 		if (this.process != null) {
 			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] start : already started "${this._scriptPath}"`);
 			return;
@@ -154,7 +154,7 @@ export class NodeReloader extends EventEmitter
 
 		this.state = "STARTING";
 
-		this._start();
+		await this._start();
 	}
 
 	/**
@@ -187,11 +187,15 @@ export class NodeReloader extends EventEmitter
 	/**
 	 * Inner start function.
 	 */
-	_start() {
+	async _start() {
 		console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _start : start process "${this._scriptPath}"`);
 
 		if (this._restartTimer != null) {
 			clearTimeout(this._restartTimer);
+		}
+
+		if (this._beforeStart) {
+			await this._beforeStart();
 		}
 
 		const args = [this._scriptPath].concat(this._args);

@@ -12,7 +12,7 @@ npm install @omarty13/node-reloader
 
 ## Parameters
 
-* `scriptPath` {string} - Full path of the script.
+* `scriptPath` {String} - Full path of the script.
 * `spawnOptions` {Object} - Spawn options.
 	*	`cwd` {String} | {URL} Current working directory of the child process.
 	*	`env` {Object} Environment key-value pairs. Default: process.env.
@@ -30,11 +30,11 @@ npm install @omarty13/node-reloader
 	*	`killSignal` {String} | {integer} The signal value to be used when the spawned process will be killed by timeout or abort signal. Default: 'SIGTERM'.
 * `watch` {Array} - Watch changes in files for reload child process. File, dir, glob.
 * `ignore` {Array} - Optional. File/paths ignored for watching. File, dir, glob.
-* `args` {string[]} - Optional. Arguments for execution script.
-* `autostart` {boolean} - Optional. Autostart after creating Nodereloader. Default **true**.
-* `restartTimeout` {number} - Optional. Restart timeout (milliseconds) after shutdown process with error. Default 3000 ms.
-* `watcherDelay` {number} - Optional. The delay (milliseconds) between successful spawn the process and creating the watcher after. Default 1000 ms.
-* `stdio` {Array} - Optional. Parameter stdio for spawn options is passed to the child process. Default is *[ process.stdin, process.stdout, process.stderr, ]*.
+* `args` {String[]} - Optional. Arguments for execution script.
+* `autostart` {Boolean} - Optional. Autostart after creating Nodereloader. Default **true**.
+* `restartTimeout` {Number} - Optional. Restart timeout (milliseconds) after shutdown process with error. Default 3000 ms.
+* `watcherDelay` {Number} - Optional. The delay (milliseconds) between successful spawn the process and creating the watcher after. Default 1000 ms.
+* `beforeStart` {Function} - Optional. The function is called before start.
 
 ## Functions
 
@@ -87,5 +87,9 @@ let nodeReloader = new NodeReloader({
 	autostart: true,
 	// Delay before restart  (Default: 3000)
 	restartTimeout: 5000,
+	// The function is called before start
+	beforeStart: () => {
+		console.log("Call before start node instance.");
+	},
 });
 ```
