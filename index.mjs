@@ -21,13 +21,16 @@ export class NodeReloader extends EventEmitter
 		this._autostart = (config.autostart == undefined) ? (true) : (config.autostart);
 		this._restartTimeout = (typeof config.restartTimeout == "number") ? (config.restartTimeout) : (3000);
 		this._watcherDelay = (typeof config.watcherDelay == "number") ? (config.watcherDelay) : (1000);
-		this._beforeStart = config.beforeStart;
+		this._beforeStart = config.beforeStart || (() => {});
+		this._beforeRestart = config.beforeRestart || (() => {});
 
 		this.state = "STOPPED";
 		this.process = null;
 		this._restartTimer = null;
 		this._watchTbl = new Set();
 		this._watcherArr = [];
+		this._pathnamesChanged = [];
+		this._pathnamesToWatch = [];
 
 		this._regexpTbl = this._makeRegexpTbl({
 			watch: config.watch,
@@ -194,8 +197,25 @@ export class NodeReloader extends EventEmitter
 			clearTimeout(this._restartTimer);
 		}
 
-		if (this._beforeStart) {
-			await this._beforeStart();
+		if (this._watcherArr.length == 0) {
+			await this._createWatchers();
+		}
+
+		if (this.state === "STARTING") {
+			await this._beforeStart({
+				pathnamesToWatch:  this._pathnamesToWatch,
+			});
+		}
+		else if (this.state === "RESTARTING") {
+			await this._beforeRestart({
+				pathnamesToWatch:  this._pathnamesToWatch,
+				pathnamesChanged:  this._pathnamesChanged,
+			});
+
+			this._pathnamesChanged = [];
+		}
+		else {
+			throw new Error(`Inner error, this.state = "${this.state}"`);
 		}
 
 		const args = [this._scriptPath].concat(this._args);
@@ -208,9 +228,9 @@ export class NodeReloader extends EventEmitter
 		this.process.on("spawn", () => {
 			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "spawn" : process has spawned successfully "${this._scriptPath}"`);
 
-			if (this._watcherArr.length == 0) {
-				setTimeout(() => this._createWatchers(), this._watcherDelay);
-			}
+			// if (this._watcherArr.length == 0) {
+			// 	setTimeout(() => this._createWatchers(), this._watcherDelay);
+			// }
 
 			this.emit("spawn", this);
 		});
@@ -218,9 +238,9 @@ export class NodeReloader extends EventEmitter
 		this.process.on("error", (err) => {
 			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "error" : error process "${this._scriptPath}" ${err}`);
 		});
-		
-		this.process.on("close", (code) => {
-			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "close" : close process "${this._scriptPath}" with code ${code}`);
+
+		this.process.on("exit", (code) => {
+			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "exit" : exit process "${this._scriptPath}" with code (${code})`);
 			
 			if (this.state == "STOPPING") {
 				this.state = "STOPPED";
@@ -231,12 +251,17 @@ export class NodeReloader extends EventEmitter
 				return;
 			}
 
-			this.state = "CLOSED";
+			this.state = "EXITED";
 			
 			this._restartTimer = setTimeout(() => {
 				this._restartTimer = null;
 				this._start();
 			}, this._restartTimeout);
+		});
+		
+		this.process.on("close", (code) => {
+			console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] this.process.on "close" : close process "${this._scriptPath}" with code (${code})`);
+			// ...
 		});
 
 		this.state = "STARTED";
@@ -254,7 +279,7 @@ export class NodeReloader extends EventEmitter
 
 		if (this.process.exitCode === null) {
 			this.state = "RESTARTING";
-			this.process.kill();
+			this.process.kill(/* 'SIGTERM' */);
 		}
 		else {
 			this._start();
@@ -265,7 +290,7 @@ export class NodeReloader extends EventEmitter
 	 * Inner function to create watcher.
 	 */
 	async _createWatchers() {
-		console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _createWatcher`);
+		console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _createWatchers`);
 
 		const { watchPaths,
 			     watchGlobs,
@@ -284,6 +309,7 @@ export class NodeReloader extends EventEmitter
 
 		this._consoleLog("__________ pathnamesToWatch ________________________________");
 		this._consoleLog(pathnamesToWatch);
+		this._pathnamesToWatch = pathnamesToWatch;
 
 		for (let i = 0; i < pathnamesToWatch.length; i++) {
 			const pathname = pathnamesToWatch[i];
@@ -300,6 +326,12 @@ export class NodeReloader extends EventEmitter
 				}
 
 				console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] watch : event ${eventType}, file "${filename}" - ${pathname}`);
+
+				this._pathnamesChanged.push({
+					eventType,
+					filename,
+					pathname,
+				});
 
 				if (this.state != "STARTED") {
 					return;
@@ -323,7 +355,7 @@ export class NodeReloader extends EventEmitter
 	 * @param {Array} ignoreGlobsArr - Array with globs for ignoring.
 	 * @return {*} 
 	 */
-	 async _getFiles(pathCrnt, watchGlobsArr, ignoreGlobsArr) {
+	async _getFiles(pathCrnt, watchGlobsArr, ignoreGlobsArr) {
 		// console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] _getFiles`, pathCrnt);
 
 		let stat;
