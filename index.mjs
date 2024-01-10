@@ -201,7 +201,10 @@ export class NodeReloader extends EventEmitter
 			await this._createWatchers();
 		}
 
-		if (this.state === "STARTING") {
+		if (this.state === "STARTING" ||
+		    this.state === "EXITED" ||
+			 this.state === "STOPPED"
+		) {
 			await this._beforeStart({
 				pathnamesToWatch:  this._pathnamesToWatch,
 			});
