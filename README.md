@@ -35,6 +35,7 @@ npm install @omarty13/node-reloader
 * `restartTimeout` {Number} - Optional. Restart timeout (milliseconds) after shutdown process with error. Default 3000 ms.
 * `watcherDelay` {Number} - Optional. The delay (milliseconds) between successful spawn the process and creating the watcher after. Default 1000 ms.
 * `beforeStart` {Function} - Optional. The function is called before start.
+* `beforeRestart` {Function} - Optional. The function is called before restart.
 
 ## Functions
 
@@ -88,8 +89,14 @@ let nodeReloader = new NodeReloader({
 	// Delay before restart  (Default: 3000)
 	restartTimeout: 5000,
 	// The function is called before start
-	beforeStart: () => {
+	beforeStart: async ({ pathnamesToWatch, }) => {
 		console.log("Call before start node instance.");
+		// pathnamesToWatch - Array with pathnames of files to watch.
+	},
+	// The function is called before restart
+	beforeRestart: async ({ filesChanged, }) => {
+		onsole.log("Call before restart node instance.");
+		// filesChanged - Array with data of files to watch like [{ eventType, filename, pathname, }, { eventType, filename, pathname, }, ...]
 	},
 });
 ```

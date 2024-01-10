@@ -29,7 +29,7 @@ export class NodeReloader extends EventEmitter
 		this._restartTimer = null;
 		this._watchTbl = new Set();
 		this._watcherArr = [];
-		this._pathnamesChanged = [];
+		this._filesChanged = [];
 		this._pathnamesToWatch = [];
 
 		this._regexpTbl = this._makeRegexpTbl({
@@ -209,10 +209,10 @@ export class NodeReloader extends EventEmitter
 		else if (this.state === "RESTARTING") {
 			await this._beforeRestart({
 				pathnamesToWatch:  this._pathnamesToWatch,
-				pathnamesChanged:  this._pathnamesChanged,
+				filesChanged:  this._filesChanged,
 			});
 
-			this._pathnamesChanged = [];
+			this._filesChanged = [];
 		}
 		else {
 			throw new Error(`Inner error, this.state = "${this.state}"`);
@@ -327,7 +327,7 @@ export class NodeReloader extends EventEmitter
 
 				console.log(`[${createTimestamp()}] [sys  ] [NodeReloader] watch : event ${eventType}, file "${filename}" - ${pathname}`);
 
-				this._pathnamesChanged.push({
+				this._filesChanged.push({
 					eventType,
 					filename,
 					pathname,
