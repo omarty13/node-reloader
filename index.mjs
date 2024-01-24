@@ -37,8 +37,9 @@ export class NodeReloader extends EventEmitter
 			ignore: config.ignore,
 		});
 
-		this._consoleLog("__________ this._regexpTbl _______________________________");
+		this._consoleLog("~~~~~~~~~~ this._regexpTbl ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 		this._consoleLog(this._regexpTbl);
+		this._consoleLog("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
 		if (this._autostart == true) {
 			this.start();
@@ -310,7 +311,7 @@ export class NodeReloader extends EventEmitter
 
 		// -----------------------------------------------------------------
 
-		this._consoleLog("__________ pathnamesToWatch ________________________________");
+		this._consoleLog("~~~~~~~~~~ pathnamesToWatch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 		this._consoleLog(pathnamesToWatch);
 		this._pathnamesToWatch = pathnamesToWatch;
 
@@ -349,6 +350,8 @@ export class NodeReloader extends EventEmitter
 
 			this._watcherArr.push(watcher);
 		}
+
+		this._consoleLog("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	}
 
 	/**
